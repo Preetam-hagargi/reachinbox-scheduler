@@ -1,0 +1,3 @@
+ALTER TABLE "email_jobs"
+ADD COLUMN "min_delay_ms" INTEGER NOT NULL DEFAULT 2000,
+ADD COLUMN "max_emails_per_hour" INTEGER NOT NULL DEFAULT 200;

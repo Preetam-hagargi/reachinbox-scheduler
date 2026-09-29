@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmailStatus {
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users     User[]
+  senders   Sender[]
+  slackConnections SlackConnection[]
+
+  @@map("tenants")
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @map("tenant_id") @db.Uuid
+  email         String     @unique
+  name          String?
+  avatarUrl     String?    @map("avatar_url")
+  googleSubject String?    @unique @map("google_subject")
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  emails        EmailJob[]
+  slackConnections SlackConnection[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Sender {
+  id          String     @id @default(uuid()) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  email       String
+  displayName String?    @map("display_name")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  emails      EmailJob[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("senders")
+}
+
+model EmailJob {
+  id              String      @id @default(uuid()) @db.Uuid
+  tenantId        String      @map("tenant_id") @db.Uuid
+  createdByUserId String      @map("created_by_user_id") @db.Uuid
+  senderId        String      @map("sender_id") @db.Uuid
+  recipientEmail  String      @map("recipient_email")
+  subject         String
+  body            String      @db.Text
+  status          EmailStatus @default(SCHEDULED)
+  idempotencyKey  String      @map("idempotency_key")
+  scheduledAt     DateTime    @map("scheduled_at") @db.Timestamptz(6)
+  minDelayMs      Int         @default(2000) @map("min_delay_ms")
+  maxEmailsPerHour Int        @default(200) @map("max_emails_per_hour")
+  sentAt          DateTime?   @map("sent_at") @db.Timestamptz(6)
+  failureReason   String?     @map("failure_reason") @db.Text
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy       User        @relation(fields: [tenantId, createdByUserId], references: [tenantId, id], onDelete: Restrict)
+  sender          Sender      @relation(fields: [tenantId, senderId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status, scheduledAt])
+  @@index([tenantId, recipientEmail])
+  @@index([senderId, scheduledAt])
+  @@map("email_jobs")
+}
+
+model SlackConnection {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @map("tenant_id") @db.Uuid
+  userId                String   @map("user_id") @db.Uuid
+  teamId                String   @map("team_id")
+  teamName              String?  @map("team_name")
+  accessTokenCiphertext String   @map("access_token_ciphertext") @db.Text
+  webhookUrlCiphertext  String?  @map("webhook_url_ciphertext") @db.Text
+  webhookChannelId      String?  @map("webhook_channel_id")
+  webhookChannelName    String?  @map("webhook_channel_name")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user                  User     @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, teamId])
+  @@map("slack_connections")
+}

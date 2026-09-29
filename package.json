@@ -1,0 +1,20 @@
+{
+    "name": "reachinbox-email-scheduler",
+    "private": true,
+    "version": "1.0.0",
+    "workspaces": [
+        "backend",
+        "frontend"
+    ],
+    "scripts": {
+        "build": "npm run build --workspace backend && npm run build --workspace frontend",
+        "typecheck": "npm run typecheck --workspace backend && npm run typecheck --workspace frontend",
+        "dev:backend": "npm run dev --workspace backend",
+        "dev:frontend": "npm run dev --workspace frontend"
+    },
+    "allowScripts": {
+        "@prisma/client@6.19.3": true,
+        "@prisma/engines@6.19.3": true,
+        "prisma@6.19.3": true
+    }
+}

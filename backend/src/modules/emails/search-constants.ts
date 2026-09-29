@@ -1,0 +1,5 @@
+export const DEFAULT_SEARCH_PAGE = 1;
+export const DEFAULT_SEARCH_LIMIT = 20;
+export const MAX_SEARCH_LIMIT = 100;
+export const MAX_SEARCH_QUERY_LENGTH = 200;
+export const MAX_SEARCH_RESULT_WINDOW = 10_000;
